@@ -15,3 +15,12 @@ Any number of instances:
 cd client-publish
 go run client.go random.go
 ```
+
+### Run Subscriber Client
+
+Any number of instances:
+
+```shell
+cd client-subscribe
+go run client.go
+```
