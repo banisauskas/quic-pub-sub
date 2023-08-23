@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"io"
 	"time"
+
 	"github.com/quic-go/quic-go"
 )
 
 const addr = "localhost:1111"
-var separator = []byte { 0 }
+
+var separator = []byte{0}
 var subscribersExist = false
 
 func main() {
 	var tlsConf = &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos: []string{"abc123"},
+		NextProtos:         []string{"abc123"},
 	}
 
 	var connection, err1 = quic.DialAddr(context.Background(), addr, tlsConf, nil)

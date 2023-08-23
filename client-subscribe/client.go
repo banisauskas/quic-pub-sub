@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"strings"
 	"io"
+	"strings"
 	"time"
+
 	"github.com/quic-go/quic-go"
 )
 
@@ -16,7 +17,7 @@ const separator = 0
 func main() {
 	var tlsConf = &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos: []string{"abc123"},
+		NextProtos:         []string{"abc123"},
 	}
 
 	var connection, err1 = quic.DialAddr(context.Background(), addr, tlsConf, nil)
@@ -29,7 +30,7 @@ func main() {
 		panic(err2)
 	}
 
-	var _, err3 = stream.Write([]byte { 0 }) // to trigger server AcceptStream
+	var _, err3 = stream.Write([]byte{0}) // to trigger server AcceptStream
 	if err3 != nil {
 		panic(err3)
 	}
@@ -39,7 +40,7 @@ func main() {
 
 	for {
 		for {
-			var n, err = stream.Read(buf1) // non-blocking; n = 0 or 1 
+			var n, err = stream.Read(buf1) // non-blocking; n = 0 or 1
 
 			for n == 0 && err == nil {
 				time.Sleep(time.Second)

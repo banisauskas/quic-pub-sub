@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"crypto/tls"
+
 	"github.com/quic-go/quic-go"
 )
 
 const subscriberAddr = "localhost:2222"
+
 var subscriberStreams = make(map[string]quic.Stream)
-var subscribersExist = []byte { 1 }
-var subscribersNotExist = []byte { 0 }
+var subscribersExist = []byte{1}
+var subscribersNotExist = []byte{0}
 
 func subscriberServer(tlsConfig *tls.Config) {
 	var listener, err1 = quic.ListenAddr(subscriberAddr, tlsConfig, nil)
@@ -34,7 +36,7 @@ func subscriberServer(tlsConfig *tls.Config) {
 		if len(subscriberStreams) == 1 { // added first subscriber
 			for _, pubStream := range publisherStreams {
 				var _, err4 = pubStream.Write(subscribersExist)
-		
+
 				if err4 != nil {
 					panic(err4)
 				}

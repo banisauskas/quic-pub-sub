@@ -14,11 +14,11 @@ func randomMessage() string {
 	}
 
 	var length = rand.Intn(20) + 1 // 1-20
-    var message = make([]rune, length)
+	var message = make([]rune, length)
 
-    for i := range message {
-        message[i] = letterRunes[rand.Intn(len(letterRunes))]
-    }
+	for i := range message {
+		message[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
 
-    return string(message)
+	return string(message)
 }

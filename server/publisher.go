@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"time"
+
 	"github.com/quic-go/quic-go"
 )
 
 const publisherAddr = "localhost:1111"
 const separator = 0
+
 var publisherStreams = make(map[string]quic.Stream)
 var publisherIDs int = 0
 
@@ -53,7 +55,7 @@ func handlePublisher(publisherID int, connectionID string, stream quic.Stream) {
 
 	for online {
 		for {
-			var n, err = stream.Read(buf1) // non-blocking; n = 0 or 1 
+			var n, err = stream.Read(buf1) // non-blocking; n = 0 or 1
 
 			for n == 0 && err == nil {
 				time.Sleep(time.Second)

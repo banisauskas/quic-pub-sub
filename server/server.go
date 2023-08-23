@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"math/big"
+
 	"github.com/quic-go/quic-go"
 )
 
@@ -42,7 +43,7 @@ func generateTLSConfig() *tls.Config {
 
 	return &tls.Config{
 		Certificates: []tls.Certificate{tlsCert},
-		NextProtos: []string{"abc123"},
+		NextProtos:   []string{"abc123"},
 	}
 }
 
