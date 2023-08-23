@@ -13,6 +13,7 @@ import (
 const publisherAddr = "localhost:1111"
 const separator = 0
 
+var publisherConnections = make(map[string]quic.Connection)
 var publisherStreams = make(map[string]quic.Stream)
 var publisherIDs int = 0
 
@@ -33,10 +34,12 @@ func publisherServer(tlsConfig *tls.Config) {
 			panic(err3)
 		}
 
-		var connectionID = connectionID(connection)
-		publisherStreams[connectionID] = stream
+		var conID = connectionID(connection)
+		publisherConnections[conID] = connection
+		publisherStreams[conID] = stream
+
 		publisherIDs++
-		go handlePublisher(publisherIDs, connectionID, stream)
+		go handlePublisher(publisherIDs, conID, stream)
 	}
 }
 

@@ -16,7 +16,8 @@ func main() {
 	var tlsConfig = generateTLSConfig()
 
 	go subscriberServer(tlsConfig)
-	publisherServer(tlsConfig)
+	go publisherServer(tlsConfig)
+	checkSubscribers()
 }
 
 func generateTLSConfig() *tls.Config {

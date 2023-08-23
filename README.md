@@ -4,7 +4,7 @@ One instance:
 
 ```shell
 cd server
-go run server.go publisher.go subscriber.go
+go run .
 ```
 
 ### Run Publisher Client
@@ -13,7 +13,7 @@ Any number of instances:
 
 ```shell
 cd client-publish
-go run client.go random.go
+go run .
 ```
 
 ### Run Subscriber Client
@@ -22,5 +22,5 @@ Any number of instances:
 
 ```shell
 cd client-subscribe
-go run client.go
+go run .
 ```
