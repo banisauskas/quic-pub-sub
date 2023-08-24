@@ -49,6 +49,6 @@ func generateTLSConfig() *tls.Config {
 }
 
 // Generates unique connection ID
-func connectionID(con quic.Connection) string {
-	return fmt.Sprintf("R%vL%v", con.RemoteAddr().String(), con.LocalAddr().String())
+func connectionID(connection quic.Connection) string {
+	return fmt.Sprintf("R%vL%v", connection.RemoteAddr().String(), connection.LocalAddr().String())
 }

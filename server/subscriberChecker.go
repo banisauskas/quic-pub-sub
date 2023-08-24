@@ -1,17 +1,32 @@
 package main
 
 import (
+	"fmt"
 	"time"
 )
 
-// if there is at least 1 subscriber
+// If there is at least 1 subscriber.
 var subsExist bool = false
+var subsExistPayload = []byte{1}
+var subsNotExistPayload = []byte{0}
 
 func checkSubscribers() {
 	for {
-		var subCons = len(subscriberConnections)
+		// Discard timed-out subscribers
 
-		if subCons > 0 {
+		var nowTime = time.Now().Unix()
+
+		for conID, sub := range subscribers {
+			if nowTime-sub.lastPing > 5 { // should be max 2-3 sec; timeout if over 5 sec.
+				sub.stream.Close()
+				delete(subscribers, conID)
+				fmt.Println("Subscribers:", len(subscribers))
+			}
+		}
+
+		// Notify publishers
+
+		if len(subscribers) > 0 {
 			if !subsExist {
 				subsExist = true
 				notifyPublishers(true)
@@ -23,7 +38,9 @@ func checkSubscribers() {
 			}
 		}
 
-		time.Sleep(time.Second) // wait 1 sec.
+		// Wait 1 sec.
+
+		time.Sleep(time.Second)
 	}
 }
 
@@ -31,9 +48,9 @@ func notifyPublishers(subsExist bool) {
 	var payload []byte
 
 	if subsExist {
-		payload = subscribersExist
+		payload = subsExistPayload
 	} else {
-		payload = subscribersNotExist
+		payload = subsNotExistPayload
 	}
 
 	for _, pubStream := range publisherStreams {

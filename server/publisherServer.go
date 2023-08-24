@@ -43,9 +43,9 @@ func publisherServer(tlsConfig *tls.Config) {
 	}
 }
 
-func handlePublisher(publisherID int, connectionID string, stream quic.Stream) {
-	if len(subscriberStreams) > 0 {
-		var _, err1 = stream.Write(subscribersExist)
+func handlePublisher(publisherID int, conID string, stream quic.Stream) {
+	if len(subscribers) > 0 {
+		var _, err1 = stream.Write(subsExistPayload)
 
 		if err1 != nil {
 			panic(err1)
@@ -83,7 +83,7 @@ func handlePublisher(publisherID int, connectionID string, stream quic.Stream) {
 		}
 	}
 
-	delete(publisherStreams, connectionID)
+	delete(publisherStreams, conID)
 	fmt.Printf("Publisher %v quit\n", publisherID)
 }
 
@@ -94,10 +94,10 @@ func processMessage(publisherID int, message []byte) {
 }
 
 func processMessage2(publisherID int, message string) {
-	fmt.Printf("Forwarding from publisher %v (to %v subscribers): %v\n", publisherID, len(subscriberStreams), message)
+	fmt.Printf("Forwarding from publisher %v (to %v subscribers): %v\n", publisherID, len(subscribers), message)
 
-	for _, subStream := range subscriberStreams {
-		var _, err1 = subStream.Write([]byte(fmt.Sprintf("%v#%v\x00", publisherID, message))) // char=0 as separator
+	for _, sub := range subscribers {
+		var _, err1 = sub.stream.Write([]byte(fmt.Sprintf("%v#%v\x00", publisherID, message))) // char=0 as separator
 
 		if err1 != nil {
 			panic(err1)
