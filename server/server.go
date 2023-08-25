@@ -13,33 +13,34 @@ import (
 )
 
 func main() {
-	var tlsConfig = generateTLSConfig()
+	tlsConfig := generateTLSConfig()
 
 	go subscriberServer(tlsConfig)
 	go publisherServer(tlsConfig)
-	checkSubscribers()
+	go trackSubscribers()
+	trackPublishers()
 }
 
 func generateTLSConfig() *tls.Config {
-	var key, err1 = rsa.GenerateKey(rand.Reader, 1024)
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
 
-	if err1 != nil {
-		panic(err1)
+	if err != nil {
+		panic(err)
 	}
 
-	var template = x509.Certificate{SerialNumber: big.NewInt(1)}
-	var certDER, err2 = x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	template := x509.Certificate{SerialNumber: big.NewInt(1)}
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
 
-	if err2 != nil {
-		panic(err2)
+	if err != nil {
+		panic(err)
 	}
 
-	var keyPEM = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	var certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-	var tlsCert, err3 = tls.X509KeyPair(certPEM, keyPEM)
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
 
-	if err3 != nil {
-		panic(err3)
+	if err != nil {
+		panic(err)
 	}
 
 	return &tls.Config{

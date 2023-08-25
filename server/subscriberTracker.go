@@ -10,11 +10,11 @@ var subsExist bool = false
 var subsExistPayload = []byte{1}
 var subsNotExistPayload = []byte{0}
 
-func checkSubscribers() {
+func trackSubscribers() {
 	for {
 		// Discard timed-out subscribers
 
-		var nowTime = time.Now().Unix()
+		nowTime := time.Now().Unix()
 
 		for conID, sub := range subscribers {
 			if nowTime-sub.lastPing > 5 { // should be max 2-3 sec; timeout if over 5 sec.
@@ -53,8 +53,8 @@ func notifyPublishers(subsExist bool) {
 		payload = subsNotExistPayload
 	}
 
-	for _, pubStream := range publisherStreams {
-		var _, err = pubStream.Write(payload)
+	for _, pub := range publishers {
+		_, err := pub.stream.Write(payload)
 
 		if err != nil {
 			panic(err)

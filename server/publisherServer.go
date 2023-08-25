@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/quic-go/quic-go"
@@ -13,78 +12,83 @@ import (
 const publisherAddr = "localhost:1111"
 const separator = 0
 
-var publisherConnections = make(map[string]quic.Connection)
-var publisherStreams = make(map[string]quic.Stream)
-var publisherIDs int = 0
+var globalIDs int = 0
+var publishers = make(map[string]*pubCon)
+
+type pubCon struct {
+	publisherID int
+	connection  quic.Connection
+	stream      quic.Stream
+	lastPing    int64
+}
 
 func publisherServer(tlsConfig *tls.Config) {
-	var listener, err1 = quic.ListenAddr(publisherAddr, tlsConfig, nil)
-	if err1 != nil {
-		panic(err1)
+	listener, err := quic.ListenAddr(publisherAddr, tlsConfig, nil)
+	if err != nil {
+		panic(err)
 	}
 
 	for {
-		var connection, err2 = listener.Accept(context.Background())
-		if err2 != nil {
-			panic(err2)
+		connection, err := listener.Accept(context.Background())
+		if err != nil {
+			panic(err)
 		}
 
-		var stream, err3 = connection.AcceptStream(context.Background())
-		if err3 != nil {
-			panic(err3)
+		stream, err := connection.AcceptStream(context.Background())
+		if err != nil {
+			panic(err)
 		}
 
-		var conID = connectionID(connection)
-		publisherConnections[conID] = connection
-		publisherStreams[conID] = stream
+		globalIDs++
 
-		publisherIDs++
-		go handlePublisher(publisherIDs, conID, stream)
+		publisher := &pubCon{
+			globalIDs,
+			connection,
+			stream,
+			time.Now().Unix(), // valid 1st ping time, because AcceptStream was trigerred by 1st ping
+		}
+
+		publishers[connectionID(connection)] = publisher
+		fmt.Println("Publishers:", len(publishers))
+
+		go handlePublisher(publisher)
 	}
 }
 
-func handlePublisher(publisherID int, conID string, stream quic.Stream) {
+func handlePublisher(publisher *pubCon) {
 	if len(subscribers) > 0 {
-		var _, err1 = stream.Write(subsExistPayload)
+		_, err := publisher.stream.Write(subsExistPayload)
 
-		if err1 != nil {
-			panic(err1)
+		if err != nil {
+			panic(err)
 		}
 	}
 
-	var online = true
-	var buf1 = make([]byte, 1)
-	var message = make([]byte, 0, 10)
+	buf1 := make([]byte, 1)
+	message := make([]byte, 0, 10)
 
-	for online {
-		for {
-			var n, err = stream.Read(buf1) // non-blocking; n = 0 or 1
+	for {
+		n, err := publisher.stream.Read(buf1) // non-blocking; n = 0 or 1
 
-			for n == 0 && err == nil {
-				time.Sleep(time.Second)
-				n, err = stream.Read(buf1)
-			}
+		for n == 0 && err == nil {
+			time.Sleep(time.Second)
+			n, err = publisher.stream.Read(buf1)
+		}
 
-			if n == 1 {
-				if buf1[0] == separator {
-					processMessage(publisherID, message)
-					message = message[:0] // clear
-				} else {
-					message = append(message, buf1[0])
-				}
-			}
-
-			if err == io.EOF {
-				processMessage(publisherID, message)
-				message = message[:0] // clear
-				online = false
-				break
+		if n == 1 {
+			if buf1[0] == separator {
+				processMessage(publisher.publisherID, message)
+				publisher.lastPing = time.Now().Unix() // separator also serves as PING
+				message = message[:0]                  // clear
+			} else {
+				message = append(message, buf1[0])
 			}
 		}
-	}
 
-	delete(publisherStreams, conID)
-	fmt.Printf("Publisher %v quit\n", publisherID)
+		if err != nil {
+			return
+		}
+	}
 }
 
 func processMessage(publisherID int, message []byte) {
@@ -97,10 +101,10 @@ func processMessage2(publisherID int, message string) {
 	fmt.Printf("Forwarding from publisher %v (to %v subscribers): %v\n", publisherID, len(subscribers), message)
 
 	for _, sub := range subscribers {
-		var _, err1 = sub.stream.Write([]byte(fmt.Sprintf("%v#%v\x00", publisherID, message))) // char=0 as separator
+		_, err := sub.stream.Write([]byte(fmt.Sprintf("%v#%v\x00", publisherID, message))) // char=0 as separator
 
-		if err1 != nil {
-			panic(err1)
+		if err != nil {
+			panic(err)
 		}
 	}
 }

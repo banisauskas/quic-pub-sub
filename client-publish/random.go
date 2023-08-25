@@ -5,19 +5,21 @@ import (
 	"time"
 )
 
-var initialized = false
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+var randInit = false
+var randLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
+// Generates random message; length = [1; 20]
 func randomMessage() string {
-	if !initialized {
+	if !randInit {
 		rand.Seed(time.Now().UnixNano())
+		randInit = true
 	}
 
-	var length = rand.Intn(20) + 1 // 1-20
-	var message = make([]rune, length)
+	length := rand.Intn(20) + 1
+	message := make([]rune, length)
 
 	for i := range message {
-		message[i] = letterRunes[rand.Intn(len(letterRunes))]
+		message[i] = randLetters[rand.Intn(len(randLetters))]
 	}
 
 	return string(message)
