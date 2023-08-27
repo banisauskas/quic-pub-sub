@@ -6,10 +6,13 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-// Ping every 2 sec with value 77.
-// Must send at least 1 byte to trigger server AcceptStream.
+const pingByte = 0
+const pingTime = 2
+
+// Ping every 2 sec with value byte=0.
+// Must send at least 1 byte to trigger server 'AcceptStream'.
 func writer(stream quic.Stream) {
-	ping := []byte{77}
+	ping := []byte{pingByte}
 
 	for {
 		_, err := stream.Write(ping)
@@ -17,6 +20,6 @@ func writer(stream quic.Stream) {
 			panic(err)
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(pingTime * time.Second)
 	}
 }

@@ -3,45 +3,52 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/quic-go/quic-go"
 )
 
+const separatorByte = 0
+
+var receivedMessage = make([]byte, 0, 1)
+
 func reader(stream quic.Stream) {
-	buf1 := make([]byte, 1)
-	message := make([]byte, 0, 10)
+	// Possible 1 message won't fit into 1 'buf10'.
+	// Also possible several messages fit into 1 'buf10'.
+	buf10 := make([]byte, 10)
 
 	for {
-		n, err := stream.Read(buf1) // non-blocking; n = 0 or 1
+		// 'Read' is blocking, waits until there is at least 1 byte to return.
+		// Except when error occurs, then returns immediatelly with any number of bytes.
+		// Conclusion: blocks until n>0 or err!=nil.
+		// Might return both n>0 and err!=nil, therefore must read bytes before error.
+		n, err := stream.Read(buf10)
 
-		for n == 0 && err == nil {
-			time.Sleep(time.Second)
-			n, err = stream.Read(buf1)
+		if n > 0 {
+			appendReceived(buf10, n)
 		}
 
-		if n == 1 {
-			if buf1[0] == 0 { // 0 is separator
-				processMessage(message)
-				message = message[:0] // clear
-			} else {
-				message = append(message, buf1[0])
-			}
-		}
-
-		if err != nil { // must check after reading 1 byte
+		if err != nil { // not always 'io.EOF'
 			panic("Disconnected")
 		}
 	}
 }
 
-func processMessage(message []byte) {
-	if len(message) > 0 {
-		parts := strings.Split(string(message), "#") // # is separator
-		processMessage2(parts[0], parts[1])
+func appendReceived(buf []byte, n int) {
+	for i := 0; i < n; i++ {
+		if buf[i] == separatorByte {
+			// Several consucutive separators are allowed,
+			// then messages between them are 0 bytes long.
+			if len(receivedMessage) > 0 {
+				processMessage(string(receivedMessage))
+				receivedMessage = receivedMessage[:0] // clear
+			}
+		} else {
+			receivedMessage = append(receivedMessage, buf[i])
+		}
 	}
 }
 
-func processMessage2(publisherID string, message string) {
-	fmt.Printf("Received from publisher %v: %v\n", publisherID, message)
+func processMessage(message string) {
+	parts := strings.Split(message, "#") // using # to separate message parts
+	fmt.Printf("From publisher #%v: %v\n", parts[0], parts[1])
 }

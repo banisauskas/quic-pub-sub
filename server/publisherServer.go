@@ -98,7 +98,7 @@ func processMessage(publisherID int, message []byte) {
 }
 
 func processMessage2(publisherID int, message string) {
-	fmt.Printf("Forwarding from publisher %v (to %v subscribers): %v\n", publisherID, len(subscribers), message)
+	fmt.Printf("Forward from publisher #%v to %v subscribers: %v\n", publisherID, len(subscribers), message)
 
 	for _, sub := range subscribers {
 		_, err := sub.stream.Write([]byte(fmt.Sprintf("%v#%v\x00", publisherID, message))) // char=0 as separator

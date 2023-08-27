@@ -10,6 +10,7 @@ import (
 )
 
 const subscriberAddr = "localhost:2222"
+const subPingByte = 0
 
 var subscribers = make(map[string]*subCon)
 
@@ -56,13 +57,13 @@ func handleSubscriber(subscriber *subCon) {
 		// blocks if nothing to read (n is always 1)
 		n, err := subscriber.stream.Read(buf1)
 
-		// error if blocked (subscriber disconnected) for >1 min.
+		// error if blocked for >1 min (e.g. subscriber disconnected)
 		if err != nil {
 			return
 		}
 
-		// expecting 1 ping byte=77
-		if n != 1 || buf1[0] != 77 {
+		// expecting 1 ping byte=0
+		if n != 1 || buf1[0] != subPingByte {
 			return
 		}
 

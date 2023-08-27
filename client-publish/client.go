@@ -12,8 +12,8 @@ const addr = "localhost:1111"
 func main() {
 	stream := createClient()
 
-	go trackSubscribers(stream)
-	sendingLoop(stream)
+	go reader(stream)
+	writer(stream)
 }
 
 func createClient() quic.Stream {
