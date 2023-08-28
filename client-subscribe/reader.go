@@ -9,7 +9,7 @@ import (
 
 const separatorByte = 0
 
-var receivedMessage = make([]byte, 0, 1)
+var receivedMessage = make([]byte, 0, 100)
 
 func reader(stream quic.Stream) {
 	// Possible 1 message won't fit into 1 'buf10'.

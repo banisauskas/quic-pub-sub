@@ -9,7 +9,7 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-const subscriberAddr = "localhost:2222"
+const subAddress = "localhost:2222"
 const subPingByte = 0
 
 var subscribers = make(map[string]*subCon)
@@ -21,7 +21,7 @@ type subCon struct {
 }
 
 func subscriberServer(tlsConfig *tls.Config) {
-	listener, err := quic.ListenAddr(subscriberAddr, tlsConfig, nil)
+	listener, err := quic.ListenAddr(subAddress, tlsConfig, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -40,16 +40,18 @@ func subscriberServer(tlsConfig *tls.Config) {
 		subscriber := &subCon{
 			connection,
 			stream,
-			time.Now().Unix(), // valid 1st ping time, because AcceptStream was trigerred by 1st ping
+			time.Now().Unix(), // first ping time, because 'AcceptStream' was trigerred by first ping
 		}
 
 		subscribers[connectionID(connection)] = subscriber
-		fmt.Println("Subscribers:", len(subscribers))
+		fmt.Println("SUBSCRIBERS:", len(subscribers))
 
 		go handleSubscriber(subscriber)
 	}
 }
 
+// If error occurs and this handler returns, last ping time won't be updated,
+// subscriber becomes timed-out and later automatically discared.
 func handleSubscriber(subscriber *subCon) {
 	buf1 := make([]byte, 1)
 

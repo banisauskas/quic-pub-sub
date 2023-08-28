@@ -9,11 +9,13 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-const publisherAddr = "localhost:1111"
+const pubAddress = "localhost:1111"
 const separator = 0
 
 var globalIDs int = 0
 var publishers = make(map[string]*pubCon)
+
+var receivedMessage = make([]byte, 0, 100)
 
 type pubCon struct {
 	publisherID int
@@ -23,7 +25,7 @@ type pubCon struct {
 }
 
 func publisherServer(tlsConfig *tls.Config) {
-	listener, err := quic.ListenAddr(publisherAddr, tlsConfig, nil)
+	listener, err := quic.ListenAddr(pubAddress, tlsConfig, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -45,63 +47,73 @@ func publisherServer(tlsConfig *tls.Config) {
 			globalIDs,
 			connection,
 			stream,
-			time.Now().Unix(), // valid 1st ping time, because AcceptStream was trigerred by 1st ping
+			time.Now().Unix(), // first ping time, because 'AcceptStream' was trigerred by first ping
 		}
 
 		publishers[connectionID(connection)] = publisher
-		fmt.Println("Publishers:", len(publishers))
+		fmt.Println("PUBLISHERS:", len(publishers))
 
 		go handlePublisher(publisher)
 	}
 }
 
 func handlePublisher(publisher *pubCon) {
-	if len(subscribers) > 0 {
-		_, err := publisher.stream.Write(subsExistPayload)
+	// Manually notify
 
-		if err != nil {
-			panic(err)
-		}
+	if len(subscribers) > 0 {
+		notifyPublisher(publisher, true)
 	}
 
-	buf1 := make([]byte, 1)
-	message := make([]byte, 0, 10)
+	// Accept messages
+
+	// Possible 1 message won't fit into 1 'buf10'.
+	// Also possible several messages fit into 1 'buf10'.
+	buf10 := make([]byte, 10)
 
 	for {
-		n, err := publisher.stream.Read(buf1) // non-blocking; n = 0 or 1
+		// 'Read' is blocking, waits until there is at least 1 byte to return.
+		// Except when error occurs, then returns immediatelly with any number of bytes.
+		// Conclusion: blocks until n>0 or err!=nil.
+		// Might return both n>0 and err!=nil, therefore must read bytes before error.
+		n, err := publisher.stream.Read(buf10)
 
-		for n == 0 && err == nil {
-			time.Sleep(time.Second)
-			n, err = publisher.stream.Read(buf1)
+		if n > 0 {
+			appendReceived(buf10, n, publisher.publisherID)
+			publisher.lastPing = time.Now().Unix()
 		}
 
-		if n == 1 {
-			if buf1[0] == separator {
-				processMessage(publisher.publisherID, message)
-				publisher.lastPing = time.Now().Unix() // separator also serves as PING
-				message = message[:0]                  // clear
-			} else {
-				message = append(message, buf1[0])
-			}
-		}
-
-		if err != nil {
+		if err != nil { // not always 'io.EOF'
 			return
 		}
 	}
 }
 
-func processMessage(publisherID int, message []byte) {
-	if len(message) > 0 {
-		processMessage2(publisherID, string(message))
+func appendReceived(buf []byte, n int, publisherID int) {
+	for i := 0; i < n; i++ {
+		if buf[i] == separator {
+			// Several consucutive separators are allowed,
+			// then messages between them are 0 bytes long.
+			if len(receivedMessage) > 0 {
+				processMessage(string(receivedMessage), publisherID)
+				receivedMessage = receivedMessage[:0] // clear
+			}
+		} else {
+			receivedMessage = append(receivedMessage, buf[i])
+		}
 	}
 }
 
-func processMessage2(publisherID int, message string) {
+func processMessage(message string, publisherID int) {
 	fmt.Printf("Forward from publisher #%v to %v subscribers: %v\n", publisherID, len(subscribers), message)
 
+	// Message format "pubid#message\0"
+	payload := []byte(fmt.Sprint(publisherID))
+	payload = append(payload, '#')
+	payload = append(payload, []byte(message)...)
+	payload = append(payload, separator)
+
 	for _, sub := range subscribers {
-		_, err := sub.stream.Write([]byte(fmt.Sprintf("%v#%v\x00", publisherID, message))) // char=0 as separator
+		_, err := sub.stream.Write(payload)
 
 		if err != nil {
 			panic(err)

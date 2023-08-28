@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 
 	"github.com/quic-go/quic-go"
@@ -15,10 +14,18 @@ import (
 func main() {
 	tlsConfig := generateTLSConfig()
 
+	// subscribers
 	go subscriberServer(tlsConfig)
+	go discardSubscribers()
+
+	// publishers
 	go publisherServer(tlsConfig)
-	go trackSubscribers()
-	trackPublishers()
+	discardPublishers()
+}
+
+// Generates unique connection ID
+func connectionID(connection quic.Connection) string {
+	return "R" + connection.RemoteAddr().String() + "L" + connection.LocalAddr().String()
 }
 
 func generateTLSConfig() *tls.Config {
@@ -47,9 +54,4 @@ func generateTLSConfig() *tls.Config {
 		Certificates: []tls.Certificate{tlsCert},
 		NextProtos:   []string{"abc123"},
 	}
-}
-
-// Generates unique connection ID
-func connectionID(connection quic.Connection) string {
-	return fmt.Sprintf("R%vL%v", connection.RemoteAddr().String(), connection.LocalAddr().String())
 }
