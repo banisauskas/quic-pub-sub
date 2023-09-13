@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/quic-go/quic-go"
@@ -14,7 +15,6 @@ const separator = 0
 
 var globalIDs int = 0
 var publishers = make(map[string]*pubCon)
-
 var receivedMessage = make([]byte, 0, 100)
 
 type pubCon struct {
@@ -106,10 +106,10 @@ func appendReceived(buf []byte, n int, publisherID int) {
 func processMessage(message string, publisherID int) {
 	fmt.Printf("Forward from publisher #%v to %v subscribers: %v\n", publisherID, len(subscribers), message)
 
-	// Message format "pubid#message\0"
-	payload := []byte(fmt.Sprint(publisherID))
+	// Message format: pubid#message\0
+	payload := []byte(strconv.Itoa(publisherID))
 	payload = append(payload, '#')
-	payload = append(payload, []byte(message)...)
+	payload = append(payload, message...)
 	payload = append(payload, separator)
 
 	for _, sub := range subscribers {
